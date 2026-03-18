@@ -10,11 +10,6 @@ SignalOps is a portfolio-grade incident, logging, alerting, and reliability anal
 - React + TypeScript + Vite frontend with Tailwind, shadcn-style primitives, Recharts, responsive dark-mode operations UI, and routed workflows
 - Backend tests with Pytest, frontend unit tests with Vitest, Playwright smoke coverage, Docker/Compose, and GitHub Actions CI
 
-## Screenshots
-
-![Dashboard](docs/screenshots/dashboard.svg)
-
-![Incidents](docs/screenshots/incidents.svg)
 
 ## Architecture
 
