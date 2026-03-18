@@ -1,0 +1,86 @@
+name: signalops
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: signalops
+      POSTGRES_USER: signalops
+      POSTGRES_PASSWORD: signalops
+    ports:
+      - "5432:5432"
+    volumes:
+      - signalops-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U signalops -d signalops"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      SIGNALOPS_DATABASE_URL: postgresql+asyncpg://signalops:signalops@db:5432/signalops
+      SIGNALOPS_REDIS_URL: redis://redis:6379/0
+      SIGNALOPS_CORS_ORIGINS: '["http://localhost:8080","http://localhost:5173"]'
+      SIGNALOPS_SEED_ON_START: "true"
+      SIGNALOPS_DEMO_MODE: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+  worker:
+    build:
+      context: ./backend
+    environment:
+      SIGNALOPS_DATABASE_URL: postgresql+asyncpg://signalops:signalops@db:5432/signalops
+      SIGNALOPS_REDIS_URL: redis://redis:6379/0
+      SIGNALOPS_SEED_ON_START: "false"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A app.tasks.celery_app.celery_app worker --loglevel=info
+
+  beat:
+    build:
+      context: ./backend
+    environment:
+      SIGNALOPS_DATABASE_URL: postgresql+asyncpg://signalops:signalops@db:5432/signalops
+      SIGNALOPS_REDIS_URL: redis://redis:6379/0
+      SIGNALOPS_SEED_ON_START: "false"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A app.tasks.celery_app.celery_app beat --loglevel=info
+
+  frontend:
+    build:
+      context: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+volumes:
+  signalops-db:
+
