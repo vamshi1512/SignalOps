@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, Header, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import decode_token
@@ -19,7 +19,10 @@ async def get_current_user(
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing bearer token")
 
-    token = authorization.replace("Bearer ", "", 1)
+    return await get_user_from_token(authorization.replace("Bearer ", "", 1), session)
+
+
+async def get_user_from_token(token: str, session: AsyncSession) -> User:
     try:
         payload = decode_token(token)
     except Exception as exc:  # noqa: BLE001
@@ -39,3 +42,6 @@ def require_roles(*roles: UserRole) -> Callable[[User], User]:
 
     return dependency
 
+
+def get_simulator(request: Request):
+    return request.app.state.simulator

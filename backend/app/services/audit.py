@@ -1,28 +1,27 @@
 from __future__ import annotations
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.audit import AuditLog
+from app.models.audit import AuditEntry
 from app.models.user import User
-from app.repositories.audit import AuditRepository
 
 
 class AuditService:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
-        self.repository = AuditRepository(session)
 
-    async def record(
+    async def log(
         self,
         *,
+        actor: User | None,
         action: str,
         resource_type: str,
         resource_id: str,
         message: str,
-        actor: User | None = None,
-        details: dict[str, str] | None = None,
-    ) -> AuditLog:
-        log = AuditLog(
+        details: dict | None = None,
+    ) -> AuditEntry:
+        entry = AuditEntry(
             actor_id=actor.id if actor else None,
             actor_email=actor.email if actor else None,
             action=action,
@@ -31,5 +30,10 @@ class AuditService:
             message=message,
             details=details or {},
         )
-        return await self.repository.add(log)
+        self.session.add(entry)
+        await self.session.flush()
+        return entry
 
+    async def list_entries(self) -> list[AuditEntry]:
+        result = await self.session.execute(select(AuditEntry).order_by(AuditEntry.created_at.desc()))
+        return list(result.scalars().all())

@@ -1,52 +1,93 @@
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 
 
-class UserRole(str, Enum):
+class UserRole(StrEnum):
     ADMIN = "admin"
-    SRE = "sre"
+    OPERATOR = "operator"
     VIEWER = "viewer"
 
 
-class ServiceEnvironment(str, Enum):
-    PRODUCTION = "production"
-    STAGING = "staging"
-    DEVELOPMENT = "development"
+class ZoneType(StrEnum):
+    PRIMARY = "primary"
+    TASK = "task"
+    CHARGING = "charging"
+    NO_GO = "no_go"
 
 
-class ServicePriority(str, Enum):
-    P0 = "p0"
-    P1 = "p1"
-    P2 = "p2"
-    P3 = "p3"
+class RobotType(StrEnum):
+    LAWN_MOWER = "lawn_mower"
+    UTILITY = "utility"
+    INSPECTION = "inspection"
 
 
-class SeverityLevel(str, Enum):
+class RobotStatus(StrEnum):
+    IDLE = "idle"
+    OPERATING = "operating"
+    PAUSED = "paused"
+    CHARGING = "charging"
+    RETURNING_HOME = "returning_home"
+    FAULT = "fault"
+    MANUAL_OVERRIDE = "manual_override"
+    WEATHER_PAUSED = "weather_paused"
+
+
+class OperatingMode(StrEnum):
+    AUTONOMOUS = "autonomous"
+    MANUAL = "manual"
+    EMERGENCY_STOP = "emergency_stop"
+
+
+class ConnectivityState(StrEnum):
+    ONLINE = "online"
+    DEGRADED = "degraded"
+    OFFLINE = "offline"
+
+
+class MissionType(StrEnum):
+    MOW = "mow"
+    INSPECT = "inspect"
+    PATROL = "patrol"
+    HAUL = "haul"
+
+
+class MissionStatus(StrEnum):
+    SCHEDULED = "scheduled"
+    ACTIVE = "active"
+    PAUSED = "paused"
+    RETURNING_HOME = "returning_home"
+    COMPLETED = "completed"
+    ABORTED = "aborted"
+
+
+class AlertSeverity(StrEnum):
     INFO = "info"
     WARNING = "warning"
-    ERROR = "error"
     CRITICAL = "critical"
 
 
-class IncidentStatus(str, Enum):
+class AlertStatus(StrEnum):
     OPEN = "open"
     ACKNOWLEDGED = "acknowledged"
-    INVESTIGATING = "investigating"
     RESOLVED = "resolved"
 
 
-class AlertMetric(str, Enum):
-    ERROR_RATE = "error_rate"
-    CRITICAL_LOGS = "critical_logs"
-    ANOMALY_SCORE = "anomaly_score"
-    INCIDENT_COUNT = "incident_count"
+class AlertType(StrEnum):
+    LOW_BATTERY = "low_battery"
+    STUCK_ROBOT = "stuck_robot"
+    COLLISION_RISK = "collision_risk"
+    OBSTACLE_DETECTED = "obstacle_detected"
+    WEATHER_SAFETY = "weather_safety"
+    LOST_CONNECTIVITY = "lost_connectivity"
+    GEOFENCE_BREACH = "geofence_breach"
+    OPERATOR_OVERRIDE = "operator_override"
+    CHARGING_CYCLE = "charging_cycle"
 
 
-class AlertStatus(str, Enum):
-    OPEN = "open"
-    ACKNOWLEDGED = "acknowledged"
-    SUPPRESSED = "suppressed"
-    ESCALATED = "escalated"
-    RESOLVED = "resolved"
-
+class WeatherState(StrEnum):
+    CLEAR = "clear"
+    DRIZZLE = "drizzle"
+    RAIN = "rain"
+    WIND_GUST = "wind_gust"
+    STORM = "storm"

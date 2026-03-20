@@ -1,2 +1,1 @@
-"""SignalOps backend package."""
-
+"""RoboYard Control backend package."""

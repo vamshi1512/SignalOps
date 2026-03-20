@@ -1,3 +1,4 @@
+import type { HTMLAttributes } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 
@@ -31,15 +32,14 @@ export function DialogContent({
   );
 }
 
-export function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+export function DialogHeader({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return <div className={cn("border-b border-white/10 px-6 py-5", className)} {...props} />;
 }
 
-export function DialogTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
+export function DialogTitle({ className, ...props }: HTMLAttributes<HTMLHeadingElement>) {
   return <h3 className={cn("font-display text-xl text-foreground", className)} {...props} />;
 }
 
-export function DialogDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
+export function DialogDescription({ className, ...props }: HTMLAttributes<HTMLParagraphElement>) {
   return <p className={cn("mt-2 text-sm text-muted-foreground", className)} {...props} />;
 }
-

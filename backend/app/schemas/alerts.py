@@ -4,54 +4,26 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from app.models.enums import AlertMetric, AlertStatus, SeverityLevel
-from app.schemas.common import ORMModel
-from app.schemas.incidents import IncidentRead
-from app.schemas.services import ServiceRead
+from app.models.enums import AlertSeverity, AlertStatus, AlertType
+from app.schemas.common import JsonObject, OrmModel, RobotSnapshotSummary
+from app.schemas.fleet import MissionSummary
 
 
-class AlertRuleCreate(BaseModel):
-    service_id: str | None = None
-    name: str = Field(min_length=3, max_length=140)
-    description: str = ""
-    metric: AlertMetric
-    threshold: float = Field(gt=0)
-    window_minutes: int = Field(ge=1, le=1440)
-    severity: SeverityLevel
-    suppression_minutes: int = Field(ge=1, le=1440, default=15)
-    escalate_after_minutes: int = Field(ge=1, le=1440, default=20)
-
-
-class AlertRuleRead(ORMModel):
+class AlertRead(OrmModel):
     id: str
-    name: str
-    description: str
-    metric: AlertMetric
-    threshold: float
-    window_minutes: int
-    severity: SeverityLevel
-    enabled: bool
-    suppression_minutes: int
-    escalate_after_minutes: int
-    service: ServiceRead | None = None
-
-
-class AlertRead(ORMModel):
-    id: str
+    type: AlertType
+    severity: AlertSeverity
     status: AlertStatus
-    message: str
-    current_value: float
-    threshold: float
-    triggered_at: datetime
+    title: str = Field(min_length=4, max_length=160)
+    message: str = Field(min_length=8, max_length=1_000)
+    notes: str = Field(max_length=2_000)
+    metadata: JsonObject
+    occurred_at: datetime
     acknowledged_at: datetime | None
     resolved_at: datetime | None
-    suppressed_until: datetime | None
-    escalation_level: int
-    service: ServiceRead
-    rule: AlertRuleRead
-    incident: IncidentRead | None = None
+    robot: RobotSnapshotSummary
+    mission: MissionSummary | None = None
 
 
-class SuppressRequest(BaseModel):
-    minutes: int = Field(ge=1, le=1440, default=30)
-
+class AlertAcknowledgeRequest(BaseModel):
+    notes: str = Field(default="", max_length=500)

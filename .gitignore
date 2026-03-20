@@ -11,4 +11,8 @@ test-results/
 coverage/
 .env
 .signalops-live.db*
+.roboyard-live.db*
+.pytest_cache/
+backend/.pytest_cache/
+frontend/.vite/
 *.egg-info/

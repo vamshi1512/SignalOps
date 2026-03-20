@@ -1,66 +1,78 @@
-# SignalOps
+# RoboYard Control
 
-SignalOps is a portfolio-grade incident, logging, alerting, and reliability analysis platform built to feel like an internal SRE product a real engineering organization would demo.
+RoboYard Control is a portfolio-grade realtime mission control platform for autonomous outdoor robots such as lawn mowers, utility carriers, and inspection bots. It simulates a live fleet moving through mapped operational zones while operators monitor telemetry, manage missions, acknowledge alerts, replay route history, and tune simulator policy from a serious dark-mode operations console.
 
-## Highlights
+## What Ships
 
-- FastAPI backend with layered services, async SQLAlchemy, structured logging, health checks, metrics, JWT auth, and RBAC
-- PostgreSQL-backed registry, logs, incidents, alerts, and audit history with a swappable log storage boundary
-- Redis + Celery worker/beat demo simulator for continuous log generation and escalation processing
-- React + TypeScript + Vite frontend with Tailwind, shadcn-style primitives, Recharts, responsive dark-mode operations UI, and routed workflows
-- Backend tests with Pytest, frontend unit tests with Vitest, Playwright smoke coverage, Docker/Compose, and GitHub Actions CI
+- FastAPI backend with JWT auth, RBAC, OpenAPI docs, async SQLAlchemy models, structured errors, and modular services for auth, fleet, missions, alerts, history, dashboard analytics, config, audit, and simulator control
+- Deterministic robot simulator with route progression, charging logic, weather pauses, obstacle events, collision-risk holds, low-battery return, connectivity degradation, and websocket fanout
+- PostgreSQL + Redis + Celery architecture with Dockerized API, worker, beat, frontend, and local Compose orchestration
+- React 19 + TypeScript + Vite frontend with Tailwind, shadcn-style primitives, Framer Motion, Recharts, a custom SVG yard map, robot detail drawer, mission composer, alert center, replay console, and admin surface
+- Seeded demo zones, robots, live missions, historical telemetry, alerts, audit entries, and demo accounts for walkthroughs
+- Backend tests with Pytest, frontend unit tests with Vitest, Playwright e2e coverage, and GitHub Actions CI
 
+## Product Surface
+
+- Authentication and roles: `admin`, `operator`, `viewer`
+- Fleet registry: robot inventory, firmware, serials, zone assignment, status, and searchable fleet cards
+- Live visualization: zones, charging stations, task areas, robot positions, alert overlays, and route tracks
+- Telemetry streaming: battery, speed, position, connectivity, operating mode, mission progress, and weather state via WebSockets
+- Mission control: create jobs, schedule windows, pause/resume, return to base, emergency stop, and manual override
+- Alerts and incidents: low battery, obstacle, lost connectivity, weather safety, geofence breach, and collision risk with acknowledgment notes
+- History and replay: mission event timeline, telemetry traces, route replay, and audit trail
+- Admin/config: users, roles, thresholds, deterministic mode, weather toggles, and audit views
+
+## Demo Profile
+
+- 8 seeded robots across 4 operational zones
+- Mixed robot states at startup: operating, charging, paused, manual override, idle, and scheduled
+- Historical telemetry and replay trails for every robot
+- Seeded alerts with open, acknowledged, and resolved lifecycle states
+- Seeded audit entries for operator actions and policy changes
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-  UI["React Console"] --> API["FastAPI API"]
+  UI["React Control Console"] --> API["FastAPI API + WebSockets"]
   API --> PG["PostgreSQL"]
   API --> Redis["Redis"]
+  API --> Sim["Deterministic Simulator Loop"]
   Worker["Celery Worker"] --> Redis
   Beat["Celery Beat"] --> Redis
   Worker --> PG
   Beat --> PG
-  API --> Metrics["/metrics + /health + /ready"]
+  Sim --> PG
+  Sim --> UI
 ```
-
-## Product Capabilities
-
-- Service registry with owner, environment, priority, and SLA metadata
-- Log ingestion with severity, tags, metadata, anomaly scoring, and grouped fingerprints
-- Incident clustering with timelines, root-cause hints, ownership, notes, and resolution controls
-- Threshold alert rules with suppression, acknowledgement, escalation simulation, and audit history
-- Reliability dashboards for incident count, MTTR, error rate, service health, and alert volume trends
-- Search and filtering across logs and incidents
-- Seeded demo services, alert rules, incident scenarios, and continuous simulator traffic
 
 ## Repository Layout
 
 ```text
-SignalOps/
-├── backend/                  FastAPI app, domain services, Celery tasks, tests
-├── frontend/                 React console, tests, Playwright smoke
-├── docs/screenshots/         README assets
-├── docker-compose.yml        Full demo stack
+RoboYardControl/
+├── Makefile                  Common local commands
+├── backend/                  FastAPI app, simulator, Celery tasks, tests
+├── frontend/                 React console, unit tests, Playwright flows
+├── docker-compose.yml        Full local stack
 └── .github/workflows/ci.yml  Backend + frontend CI
 ```
 
-## Stack
-
-- Backend: Python 3.12, FastAPI, SQLAlchemy, Celery
-- Data: PostgreSQL, Redis
-- Frontend: React 19, TypeScript, Vite, Tailwind CSS, Recharts
-- Testing: Pytest, Vitest, Playwright
-- Delivery: Docker, Docker Compose, GitHub Actions
-
 ## Demo Accounts
 
-- `admin@signalops.dev` / `Admin123!`
-- `sre@signalops.dev` / `Sre123!`
-- `viewer@signalops.dev` / `Viewer123!`
+- `admin@roboyard.dev` / `Admin123!`
+- `ops@roboyard.dev` / `Ops123!`
+- `viewer@roboyard.dev` / `Viewer123!`
 
 ## Local Development
+
+### Environment Files
+
+```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+```
+
+The backend accepts `ROBOYARD_CORS_ORIGINS` as JSON or a comma-separated list for easier local setup.
 
 ### Backend
 
@@ -74,11 +86,22 @@ uvicorn app.main:app --reload --port 8000
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
-The frontend proxies `/api/*` to `http://localhost:8000` during development.
+The Vite dev server proxies `/api/*` to `http://localhost:8000`.
+
+### Makefile Shortcuts
+
+```bash
+make backend-install
+make frontend-install
+make test
+make lint
+make typecheck
+make build
+```
 
 ### Full Stack with Docker Compose
 
@@ -93,30 +116,40 @@ Endpoints:
 - OpenAPI docs: `http://localhost:8000/docs`
 - Metrics: `http://localhost:8000/metrics`
 
-## Testing
+Compose now includes health checks for PostgreSQL, Redis, backend, and frontend services so the stack comes up in a more predictable order.
+
+## API and Module Boundaries
+
+- `backend/app/api/routes`: auth, fleet, missions, alerts, history, config, dashboard, audit, simulator, system
+- `backend/app/services`: orchestration and business logic for simulator control, mission commands, dashboard aggregation, demo seeding, and audit logging
+- `backend/app/schemas`: strongly typed request and response contracts with validation for geometry, mission scheduling, alert notes, config thresholds, and nested summaries
+- `frontend/src/pages`: landing, login, console, fleet, missions, alerts, history, admin
+- `frontend/src/components`: app shell, analytics cards, status primitives, yard visualization, robot drawer, and reusable loading/empty/error states
+
+## Verification
+
+Commands executed in this workspace:
 
 ```bash
-cd backend && pytest
+cd backend && python3 -m pytest tests -q
 cd frontend && npm run lint
 cd frontend && npm run test:run
 cd frontend && npm run build
 cd frontend && npm run test:e2e
 ```
 
-## Verification
+Observed results:
 
-- Backend API verified with `pytest` and live health/login/dashboard/incident endpoint checks
-- Frontend verified with lint, unit tests, production build, Playwright smoke, and a real browser login flow against the live backend
-- Docker assets are included for the full stack, and GitHub Actions reproduces the backend/frontend verification pipeline in CI
+- Backend tests passed: `10 passed`
+- Frontend lint passed
+- Frontend unit tests passed: `5 passed`
+- Frontend production build passed
+- Playwright e2e passed: `6 passed`
 
-## Demo Scenarios
+## Notable Implementation Notes
 
-- `payment-api`: authorization timeouts and ledger persistence failures
-- `identity-service`: auth burst failures and replica issues
-- `fulfillment-engine`: queue backlog and dispatch confirmation delays
-- `notification-worker`: delivery retry storms in staging
-
-## Notes
-
-- Log persistence is implemented in PostgreSQL for the prototype, but the ingestion flow routes through a dedicated storage abstraction so a specialized log store can be swapped in later.
-- Celery beat continuously generates simulator traffic and processes alert escalations in the full Compose stack.
+- The backend defaults to PostgreSQL/Redis for real deployment but supports SQLite in tests for fast local verification.
+- The simulator runs inside the FastAPI app lifecycle for realtime demo streaming, while Celery is reserved for background rollups and periodic jobs.
+- The frontend websocket layer updates React Query caches in place so the control console visibly changes without page refreshes.
+- Demo seed data is deterministic, which makes dashboard walkthroughs and replay sessions stable across runs.
+- The repo was cleaned of detached legacy SignalOps-era service, incident, and logging modules so the architecture now maps cleanly to the robotics product surface.

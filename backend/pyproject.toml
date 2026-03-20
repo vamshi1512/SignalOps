@@ -3,9 +3,9 @@ requires = ["setuptools>=70", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "signalops-backend"
+name = "roboyard-control-backend"
 version = "0.1.0"
-description = "SignalOps backend platform"
+description = "RoboYard Control FastAPI backend"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

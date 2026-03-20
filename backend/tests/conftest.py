@@ -14,10 +14,11 @@ from app.main import create_app
 
 @pytest.fixture()
 async def client(tmp_path) -> AsyncIterator[AsyncClient]:
-    db_path = tmp_path / "signalops-test.db"
-    os.environ["SIGNALOPS_DATABASE_URL"] = f"sqlite+aiosqlite:///{db_path}"
-    os.environ["SIGNALOPS_SEED_ON_START"] = "true"
-    os.environ["SIGNALOPS_METRICS_ENABLED"] = "false"
+    db_path = tmp_path / "roboyard-test.db"
+    os.environ["ROBOYARD_DATABASE_URL"] = f"sqlite+aiosqlite:///{db_path}"
+    os.environ["ROBOYARD_SEED_ON_START"] = "true"
+    os.environ["ROBOYARD_DEMO_MODE"] = "false"
+    os.environ["ROBOYARD_METRICS_ENABLED"] = "false"
     get_settings.cache_clear()
     await dispose_engine()
 
@@ -29,3 +30,32 @@ async def client(tmp_path) -> AsyncIterator[AsyncClient]:
     await dispose_engine()
     get_settings.cache_clear()
 
+
+@pytest.fixture()
+async def admin_headers(client: AsyncClient) -> dict[str, str]:
+    response = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "admin@roboyard.dev", "password": "Admin123!"},
+    )
+    token = response.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture()
+async def operator_headers(client: AsyncClient) -> dict[str, str]:
+    response = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "ops@roboyard.dev", "password": "Ops123!"},
+    )
+    token = response.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture()
+async def viewer_headers(client: AsyncClient) -> dict[str, str]:
+    response = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "viewer@roboyard.dev", "password": "Viewer123!"},
+    )
+    token = response.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}

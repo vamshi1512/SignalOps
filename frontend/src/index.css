@@ -42,10 +42,12 @@
   body {
     @apply min-h-screen bg-background font-body text-foreground antialiased;
     background-image:
-      radial-gradient(circle at 20% 20%, rgba(8, 145, 178, 0.18), transparent 30%),
-      radial-gradient(circle at 85% 15%, rgba(16, 185, 129, 0.12), transparent 30%),
-      radial-gradient(circle at 50% 80%, rgba(249, 115, 22, 0.1), transparent 26%),
-      linear-gradient(180deg, rgba(9, 11, 23, 0.96), rgba(5, 8, 18, 1));
+      radial-gradient(circle at 14% 18%, rgba(6, 182, 212, 0.2), transparent 24%),
+      radial-gradient(circle at 84% 16%, rgba(16, 185, 129, 0.12), transparent 26%),
+      radial-gradient(circle at 70% 78%, rgba(249, 115, 22, 0.08), transparent 22%),
+      linear-gradient(180deg, rgba(5, 8, 18, 0.88), rgba(2, 6, 23, 1)),
+      linear-gradient(135deg, rgba(8, 47, 73, 0.22), transparent 35%);
+    background-attachment: fixed;
   }
 
   #root {
@@ -55,11 +57,18 @@
 
 @layer components {
   .surface-panel {
-    @apply rounded-3xl border border-white/10 bg-card/80 shadow-panel backdrop-blur-xl;
+    @apply rounded-3xl border border-white/10 bg-card/75 shadow-panel backdrop-blur-xl;
+    box-shadow:
+      0 0 0 1px rgba(148, 163, 184, 0.04),
+      0 24px 64px rgba(2, 6, 23, 0.46);
   }
 
   .surface-panel-elevated {
     @apply rounded-3xl border border-cyan-400/15 bg-slate-950/80 shadow-glow backdrop-blur-xl;
+    box-shadow:
+      0 0 0 1px rgba(34, 211, 238, 0.08),
+      0 24px 64px rgba(2, 6, 23, 0.54),
+      inset 0 1px 0 rgba(255, 255, 255, 0.03);
   }
 
   .metric-glow {
@@ -72,5 +81,14 @@
     background-image: theme("backgroundImage.grid-fade");
     background-size: 48px 48px;
   }
-}
 
+  .control-shell {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent),
+      rgba(2, 6, 23, 0.78);
+  }
+
+  .status-chip {
+    @apply inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-[11px] uppercase tracking-[0.22em] text-slate-200;
+  }
+}

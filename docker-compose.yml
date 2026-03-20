@@ -1,18 +1,18 @@
-name: signalops
+name: roboyard-control
 
 services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: signalops
-      POSTGRES_USER: signalops
-      POSTGRES_PASSWORD: signalops
+      POSTGRES_DB: roboyard_control
+      POSTGRES_USER: roboyard
+      POSTGRES_PASSWORD: roboyard
     ports:
       - "5432:5432"
     volumes:
-      - signalops-db:/var/lib/postgresql/data
+      - roboyard-db:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U signalops -d signalops"]
+      test: ["CMD-SHELL", "pg_isready -U roboyard -d roboyard_control"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -31,11 +31,11 @@ services:
     build:
       context: ./backend
     environment:
-      SIGNALOPS_DATABASE_URL: postgresql+asyncpg://signalops:signalops@db:5432/signalops
-      SIGNALOPS_REDIS_URL: redis://redis:6379/0
-      SIGNALOPS_CORS_ORIGINS: '["http://localhost:8080","http://localhost:5173"]'
-      SIGNALOPS_SEED_ON_START: "true"
-      SIGNALOPS_DEMO_MODE: "true"
+      ROBOYARD_DATABASE_URL: postgresql+asyncpg://roboyard:roboyard@db:5432/roboyard_control
+      ROBOYARD_REDIS_URL: redis://redis:6379/0
+      ROBOYARD_CORS_ORIGINS: '["http://localhost:8080","http://localhost:5173"]'
+      ROBOYARD_SEED_ON_START: "true"
+      ROBOYARD_DEMO_MODE: "true"
     depends_on:
       db:
         condition: service_healthy
@@ -44,14 +44,19 @@ services:
     ports:
       - "8000:8000"
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/system/health')\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
 
   worker:
     build:
       context: ./backend
     environment:
-      SIGNALOPS_DATABASE_URL: postgresql+asyncpg://signalops:signalops@db:5432/signalops
-      SIGNALOPS_REDIS_URL: redis://redis:6379/0
-      SIGNALOPS_SEED_ON_START: "false"
+      ROBOYARD_DATABASE_URL: postgresql+asyncpg://roboyard:roboyard@db:5432/roboyard_control
+      ROBOYARD_REDIS_URL: redis://redis:6379/0
+      ROBOYARD_SEED_ON_START: "false"
     depends_on:
       db:
         condition: service_healthy
@@ -63,9 +68,9 @@ services:
     build:
       context: ./backend
     environment:
-      SIGNALOPS_DATABASE_URL: postgresql+asyncpg://signalops:signalops@db:5432/signalops
-      SIGNALOPS_REDIS_URL: redis://redis:6379/0
-      SIGNALOPS_SEED_ON_START: "false"
+      ROBOYARD_DATABASE_URL: postgresql+asyncpg://roboyard:roboyard@db:5432/roboyard_control
+      ROBOYARD_REDIS_URL: redis://redis:6379/0
+      ROBOYARD_SEED_ON_START: "false"
     depends_on:
       db:
         condition: service_healthy
@@ -77,10 +82,15 @@ services:
     build:
       context: ./frontend
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     ports:
       - "8080:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1/ >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
 
 volumes:
-  signalops-db:
-
+  roboyard-db:

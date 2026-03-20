@@ -1,17 +1,9 @@
-import {
-  createContext,
-  type PropsWithChildren,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { createContext, type PropsWithChildren, useContext, useEffect, useRef, useState } from "react";
 
 import { api, ApiError } from "@/lib/api";
 import type { AuthSession } from "@/types/api";
 
-const STORAGE_KEY = "signalops-session";
+const STORAGE_KEY = "roboyard-session";
 
 interface AuthContextValue {
   session: AuthSession | null;
@@ -53,16 +45,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
       .me(session.access_token)
       .then((user) => {
         validatedTokenRef.current = session.access_token;
-        const unchanged =
-          session.user.id === user.id &&
-          session.user.email === user.email &&
-          session.user.full_name === user.full_name &&
-          session.user.role === user.role;
-        if (!unchanged) {
-          const nextSession = { ...session, user };
-          setSession(nextSession);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSession));
-        }
+        const nextSession = { ...session, user };
+        setSession(nextSession);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSession));
       })
       .catch(() => {
         validatedTokenRef.current = null;
@@ -75,13 +60,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
   async function login(email: string, password: string) {
     setError(null);
     try {
-      validatedTokenRef.current = null;
       const nextSession = await api.login(email, password);
+      validatedTokenRef.current = null;
       setSession(nextSession);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSession));
     } catch (error) {
       const message =
-        error instanceof ApiError ? error.message : "Unable to reach SignalOps API. Check backend availability.";
+        error instanceof ApiError ? error.message : "Unable to reach the RoboYard Control API. Check backend availability.";
       setError(message);
       throw error;
     }
@@ -94,19 +79,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
     localStorage.removeItem(STORAGE_KEY);
   }
 
-  const value = useMemo(
-    () => ({
-      session,
-      hydrated,
-      error,
-      login,
-      logout,
-      clearError: () => setError(null),
-    }),
-    [error, hydrated, session],
+  return (
+    <AuthContext.Provider
+      value={{
+        session,
+        hydrated,
+        error,
+        login,
+        logout,
+        clearError: () => setError(null),
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
   );
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

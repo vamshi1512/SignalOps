@@ -1,12 +1,13 @@
-# SignalOps Frontend
+# RoboYard Control Frontend
 
-React + TypeScript frontend for the SignalOps operations platform.
+React + TypeScript control console for the RoboYard Control operations platform.
 
 ## Commands
 
 ```bash
-npm install
+npm ci
 npm run dev
+npm run typecheck
 npm run lint
 npm run test:run
 npm run build

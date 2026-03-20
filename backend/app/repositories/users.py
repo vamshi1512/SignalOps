@@ -26,3 +26,5 @@ class UserRepository:
         await self.session.flush()
         return user
 
+    async def delete(self, user: User) -> None:
+        await self.session.delete(user)

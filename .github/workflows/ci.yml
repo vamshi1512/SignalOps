@@ -1,4 +1,4 @@
-name: CI
+name: RoboYard Control CI
 
 on:
   push:
@@ -47,4 +47,3 @@ jobs:
       - name: Run Playwright smoke
         run: npm run test:e2e
         working-directory: frontend
-

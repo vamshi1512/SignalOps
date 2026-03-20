@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -10,22 +11,23 @@ export function MetricCard({ metric }: { metric: MetricCardType }) {
   const TrendIcon = positive ? ArrowUpRight : ArrowDownRight;
 
   return (
-    <Card className="metric-glow border-white/10">
-      <CardContent className="space-y-4 p-5">
-        <div className="flex items-center justify-between">
-          <Badge>{metric.label}</Badge>
-          <span className="rounded-full border border-white/10 bg-white/5 p-2">
-            <TrendIcon className={`h-4 w-4 ${positive ? "text-emerald-300" : "text-red-300"}`} />
-          </span>
-        </div>
-        <div className="space-y-1">
-          <div className="font-display text-3xl text-white">{formatMetric(metric.value, metric.suffix)}</div>
-          <div className={`text-sm ${positive ? "text-emerald-300" : "text-red-300"}`}>
-            {formatDelta(metric.delta, metric.suffix)} vs baseline
+    <motion.div whileHover={{ y: -4 }}>
+      <Card className="metric-glow border-white/10">
+        <CardContent className="space-y-4 p-5">
+          <div className="flex items-center justify-between">
+            <Badge>{metric.label}</Badge>
+            <span className="rounded-full border border-white/10 bg-white/5 p-2">
+              <TrendIcon className={`h-4 w-4 ${positive ? "text-emerald-300" : "text-rose-300"}`} />
+            </span>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+          <div className="space-y-1">
+            <div className="font-display text-3xl text-white">{formatMetric(metric.value, metric.suffix)}</div>
+            <div className={`text-sm ${positive ? "text-emerald-300" : "text-rose-300"}`}>
+              {formatDelta(metric.delta, metric.suffix)} vs recent baseline
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }
-
