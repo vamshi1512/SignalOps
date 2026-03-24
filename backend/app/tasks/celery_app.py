@@ -8,22 +8,18 @@ from app.core.config import get_settings
 settings = get_settings()
 
 celery_app = Celery(
-    "signalops",
+    "testforge",
     broker=settings.redis_url,
     backend=settings.redis_url,
 )
 
 celery_app.conf.update(
     timezone="UTC",
+    task_always_eager=settings.celery_eager,
     beat_schedule={
-        "demo-tick": {
-            "task": "app.tasks.jobs.demo_tick",
+        "schedule-due-runs": {
+            "task": "app.tasks.jobs.schedule_due_runs_task",
             "schedule": 30.0,
-        },
-        "alert-escalation-check": {
-            "task": "app.tasks.jobs.process_escalations",
-            "schedule": 60.0,
         },
     },
 )
-

@@ -1,10 +1,13 @@
-export type UserRole = "admin" | "sre" | "viewer";
-export type ServiceEnvironment = "production" | "staging" | "development";
-export type ServicePriority = "p0" | "p1" | "p2" | "p3";
-export type SeverityLevel = "info" | "warning" | "error" | "critical";
-export type IncidentStatus = "open" | "acknowledged" | "investigating" | "resolved";
-export type AlertStatus = "open" | "acknowledged" | "suppressed" | "escalated" | "resolved";
-export type AlertMetric = "error_rate" | "critical_logs" | "anomaly_score" | "incident_count";
+export type UserRole = "admin" | "qa_engineer" | "viewer";
+export type EnvironmentKind = "qa" | "staging" | "prod_like" | "mock";
+export type EnvironmentStatus = "healthy" | "degraded" | "offline";
+export type SuiteType = "api" | "ui";
+export type SuiteStatus = "active" | "draft" | "paused";
+export type RunStatus = "queued" | "running" | "passed" | "failed" | "partial" | "cancelled";
+export type ResultStatus = "passed" | "failed" | "skipped" | "flaky";
+export type TriggerType = "manual" | "scheduled" | "demo";
+export type NotificationChannel = "slack" | "email" | "webhook";
+export type NotificationStatus = "pending" | "sent" | "skipped";
 
 export interface ListResponse<T> {
   items: T[];
@@ -24,93 +27,166 @@ export interface AuthSession {
   user: User;
 }
 
-export interface Service {
+export interface Project {
   id: string;
   name: string;
   slug: string;
   owner: string;
-  environment: ServiceEnvironment;
-  priority: ServicePriority;
-  sla_target: number;
+  repository_url: string;
+  default_branch: string;
   description: string;
   created_at: string;
   updated_at: string;
-  health_score: number;
-  open_incidents: number;
-  open_alerts: number;
 }
 
-export interface LogEvent {
+export interface Environment {
   id: string;
-  occurred_at: string;
-  severity: SeverityLevel;
-  message: string;
-  source: string;
-  tags: string[];
-  metadata: Record<string, string>;
-  fingerprint: string;
-  anomaly_score: number;
-  is_anomalous: boolean;
-  service: Service;
-}
-
-export interface IncidentNote {
-  id: string;
-  content: string;
-  is_system: boolean;
+  project_id: string;
+  name: string;
+  slug: string;
+  kind: EnvironmentKind;
+  status: EnvironmentStatus;
+  api_base_url: string;
+  ui_base_url: string;
+  health_summary: string;
+  variables: Record<string, string>;
+  is_default: boolean;
+  last_checked_at: string | null;
   created_at: string;
-  author: User | null;
+  updated_at: string;
 }
 
-export interface Incident {
+export interface FixtureSet {
   id: string;
-  title: string;
-  summary: string;
-  root_cause_hint: string;
-  status: IncidentStatus;
-  severity: SeverityLevel;
-  environment: ServiceEnvironment;
-  group_key: string;
-  first_seen_at: string;
-  last_seen_at: string;
-  resolved_at: string | null;
-  occurrence_count: number;
-  affected_logs: number;
-  current_error_rate: number;
-  health_impact: number;
-  service: Service;
-  assignee: User | null;
-  notes: IncidentNote[];
-}
-
-export interface AlertRule {
-  id: string;
+  project_id: string;
   name: string;
   description: string;
-  metric: AlertMetric;
-  threshold: number;
-  window_minutes: number;
-  severity: SeverityLevel;
-  enabled: boolean;
-  suppression_minutes: number;
-  escalate_after_minutes: number;
-  service: Service | null;
+  payload: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
 }
 
-export interface Alert {
+export interface SuiteCase {
   id: string;
-  status: AlertStatus;
+  key: string;
+  name: string;
+  module_name: string;
+  order_index: number;
+  automation_ref: string;
+  expected_outcome: string;
+  deterministic_profile: string;
+  baseline_duration_ms: number;
+  tags: string[];
+  fixture_overrides: Record<string, unknown>;
+}
+
+export interface Schedule {
+  id: string;
+  suite_id: string;
+  environment_id: string;
+  name: string;
+  cadence_minutes: number;
+  next_run_at: string;
+  last_run_at: string | null;
+  parallel_workers: number;
+  timezone: string;
+  active: boolean;
+  environment_name: string;
+}
+
+export interface SuiteSummary {
+  id: string;
+  name: string;
+  slug: string;
+  suite_type: SuiteType;
+  owner: string;
+  tags: string[];
+  status: SuiteStatus;
+}
+
+export interface Suite extends SuiteSummary {
+  description: string;
+  repo_path: string;
+  command: string;
+  parallel_workers: number;
+  is_flaky_watch: boolean;
+  created_at: string;
+  updated_at: string;
+  project: Project;
+  default_environment: Environment | null;
+  default_fixture_set: FixtureSet | null;
+  test_cases: SuiteCase[];
+  schedules: Schedule[];
+  latest_run_status: RunStatus | null;
+  last_run_at: string | null;
+  pass_rate_14d: number;
+  flaky_cases: number;
+}
+
+export interface Attachment {
+  label: string;
+  type: string;
+  url: string;
+}
+
+export interface TestResult {
+  id: string;
+  test_case_id: string | null;
+  name: string;
+  module_name: string;
+  status: ResultStatus;
+  retry_count: number;
+  is_flaky: boolean;
+  duration_ms: number;
+  started_at: string;
+  finished_at: string;
+  error_message: string;
+  stack_trace: string;
+  logs: string;
+  request_details: Record<string, unknown>;
+  response_details: Record<string, unknown>;
+  attachments: Attachment[];
+}
+
+export interface NotificationEvent {
+  id: string;
+  channel: NotificationChannel;
+  status: NotificationStatus;
+  recipient: string;
+  subject: string;
   message: string;
-  current_value: number;
-  threshold: number;
-  triggered_at: string;
-  acknowledged_at: string | null;
-  resolved_at: string | null;
-  suppressed_until: string | null;
-  escalation_level: number;
-  service: Service;
-  rule: AlertRule;
-  incident: Incident | null;
+  delivered_at: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface TestRun {
+  id: string;
+  trigger_type: TriggerType;
+  status: RunStatus;
+  requested_parallel_workers: number;
+  total_count: number;
+  pass_count: number;
+  fail_count: number;
+  skip_count: number;
+  flaky_count: number;
+  duration_ms: number;
+  started_at: string | null;
+  finished_at: string | null;
+  created_at: string;
+  summary: Record<string, unknown>;
+  metadata: Record<string, unknown>;
+  project: Project;
+  suite: SuiteSummary;
+  environment: Environment;
+  fixture_set: FixtureSet | null;
+  schedule: Schedule | null;
+  triggered_by: User | null;
+}
+
+export interface TestRunDetail extends TestRun {
+  results: TestResult[];
+  notifications: NotificationEvent[];
 }
 
 export interface AuditEntry {
@@ -120,7 +196,7 @@ export interface AuditEntry {
   action: string;
   resource_type: string;
   resource_id: string;
-  details: Record<string, string>;
+  details: Record<string, unknown>;
   created_at: string;
   message: string;
 }
@@ -137,13 +213,39 @@ export interface TimeSeriesPoint {
   value: number;
 }
 
-export interface DashboardOverview {
-  metrics: MetricCard[];
-  incident_trend: TimeSeriesPoint[];
-  error_rate_trend: TimeSeriesPoint[];
-  alert_volume_trend: TimeSeriesPoint[];
-  services: Service[];
-  recent_incidents: Incident[];
-  active_alerts: Alert[];
+export interface FailureBreakdown {
+  module_name: string;
+  failures: number;
 }
 
+export interface SuiteRisk {
+  id: string;
+  name: string;
+  suite_type: SuiteType;
+  owner: string;
+  latest_status: RunStatus | null;
+  pass_rate_14d: number;
+  flaky_cases: number;
+  failing_results: number;
+  environment_name: string | null;
+}
+
+export interface EnvironmentBadge {
+  id: string;
+  name: string;
+  kind: EnvironmentKind;
+  status: EnvironmentStatus;
+  project_name: string;
+  last_checked_at: string | null;
+}
+
+export interface DashboardOverview {
+  metrics: MetricCard[];
+  pass_rate_trend: TimeSeriesPoint[];
+  duration_trend: TimeSeriesPoint[];
+  flaky_trend: TimeSeriesPoint[];
+  failures_by_module: FailureBreakdown[];
+  recent_runs: TestRun[];
+  suites_at_risk: SuiteRisk[];
+  environments: EnvironmentBadge[];
+}

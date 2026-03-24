@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 from uuid import uuid4
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.api.router import api_router
@@ -26,6 +28,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     configure_logging()
     settings = get_settings()
+    Path(settings.artifact_root).mkdir(parents=True, exist_ok=True)
     await init_db()
     if settings.seed_on_start:
         async with get_session_factory()() as session:
@@ -36,8 +39,9 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    Path(settings.artifact_root).mkdir(parents=True, exist_ok=True)
     app = FastAPI(
-        title="SignalOps API",
+        title=f"{settings.app_name} API",
         version="0.1.0",
         lifespan=lifespan,
         docs_url="/docs",
@@ -79,6 +83,7 @@ def create_app() -> FastAPI:
         return await http_error_handler(request, exc)
 
     app.include_router(api_router, prefix=settings.api_prefix)
+    app.mount("/artifacts", StaticFiles(directory=settings.artifact_root), name="artifacts")
 
     if settings.metrics_enabled:
         Instrumentator().instrument(app).expose(app, include_in_schema=False, endpoint="/metrics")

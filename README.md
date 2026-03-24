@@ -1,127 +1,156 @@
-# SignalOps
+# TestForge
 
-SignalOps is a portfolio-grade incident, logging, alerting, and reliability analysis platform built to feel like an internal SRE product a real engineering organization would demo.
+TestForge is a portfolio-grade QA automation management platform for API and UI testing. It models suites, fixtures, environments, schedules, runs, artifacts, alerts, and audit history as first-class platform concerns instead of treating automation as a loose folder of scripts.
 
-## Highlights
+## Why it feels production-grade
 
-- FastAPI backend with layered services, async SQLAlchemy, structured logging, health checks, metrics, JWT auth, and RBAC
-- PostgreSQL-backed registry, logs, incidents, alerts, and audit history with a swappable log storage boundary
-- Redis + Celery worker/beat demo simulator for continuous log generation and escalation processing
-- React + TypeScript + Vite frontend with Tailwind, shadcn-style primitives, Recharts, responsive dark-mode operations UI, and routed workflows
-- Backend tests with Pytest, frontend unit tests with Vitest, Playwright smoke coverage, Docker/Compose, and GitHub Actions CI
+- FastAPI backend with async SQLAlchemy, JWT auth, validation-heavy request models, deterministic execution orchestration, audit logging, and artifact serving
+- PostgreSQL for persistent state, Redis plus Celery for background execution and schedule polling, and shared artifact storage across API and worker containers
+- React + TypeScript frontend with a premium dark/light dashboard, strong loading/empty/error states, reusable surface components, Recharts visualizations, and deep run drilldowns
+- Seeded demo inventory with realistic projects, environments, fixture payloads, schedules, run history, synthetic alerts, and mock API/UI targets for portfolio walkthroughs
+- Automated verification through backend Pytest, frontend Vitest, Playwright smoke coverage, Docker Compose, and GitHub Actions CI
 
-## Screenshots
+## Feature set
 
-![Dashboard](docs/screenshots/dashboard.svg)
-
-![Incidents](docs/screenshots/incidents.svg)
+- Project management for reusable automation domains
+- Environment management across QA, staging, prod-like, and mock targets
+- Fixture-set management with structured payloads
+- Suite inventory for API and UI automation, owners, commands, tags, and case metadata
+- Manual run launching plus schedule-driven execution
+- Parallel worker simulation and deterministic flaky/failure modeling
+- Dashboard reporting for pass-rate drift, runtime changes, flaky pressure, module hotspots, and run history
+- Run details with UI screenshots, API request/response payloads, logs, stack traces, notifications, and runtime metadata
+- Alert simulation and audit history for operational visibility
+- Mock target API and mock target UI surfaces for demo execution
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-  UI["React Console"] --> API["FastAPI API"]
+  UI["React TestForge Console"] --> API["FastAPI Platform API"]
   API --> PG["PostgreSQL"]
   API --> Redis["Redis"]
+  API --> Artifacts["Artifacts Volume"]
   Worker["Celery Worker"] --> Redis
   Beat["Celery Beat"] --> Redis
   Worker --> PG
-  Beat --> PG
-  API --> Metrics["/metrics + /health + /ready"]
+  Worker --> Artifacts
+  API --> Mock["Mock Target API + UI"]
 ```
 
-## Product Capabilities
-
-- Service registry with owner, environment, priority, and SLA metadata
-- Log ingestion with severity, tags, metadata, anomaly scoring, and grouped fingerprints
-- Incident clustering with timelines, root-cause hints, ownership, notes, and resolution controls
-- Threshold alert rules with suppression, acknowledgement, escalation simulation, and audit history
-- Reliability dashboards for incident count, MTTR, error rate, service health, and alert volume trends
-- Search and filtering across logs and incidents
-- Seeded demo services, alert rules, incident scenarios, and continuous simulator traffic
-
-## Repository Layout
+## Repository layout
 
 ```text
-SignalOps/
-├── backend/                  FastAPI app, domain services, Celery tasks, tests
-├── frontend/                 React console, tests, Playwright smoke
-├── docs/screenshots/         README assets
-├── docker-compose.yml        Full demo stack
-└── .github/workflows/ci.yml  Backend + frontend CI
+TestForge/
+├── backend/                  FastAPI API, Celery tasks, domain models, tests
+├── frontend/                 React dashboard, component tests, Playwright smoke
+├── sample-tests/             Example Pytest and Playwright automation assets
+├── docker-compose.yml        Full demo stack with health checks
+├── Makefile                  Common local dev and verification commands
+└── .github/workflows/ci.yml  CI pipeline
 ```
 
-## Stack
+## Demo accounts
 
-- Backend: Python 3.12, FastAPI, SQLAlchemy, Celery
-- Data: PostgreSQL, Redis
-- Frontend: React 19, TypeScript, Vite, Tailwind CSS, Recharts
-- Testing: Pytest, Vitest, Playwright
-- Delivery: Docker, Docker Compose, GitHub Actions
+- `admin@testforge.dev` / `Admin123!`
+- `qa.lead@testforge.dev` / `QaLead123!`
+- `viewer@testforge.dev` / `Viewer123!`
 
-## Demo Accounts
+## Quick start
 
-- `admin@signalops.dev` / `Admin123!`
-- `sre@signalops.dev` / `Sre123!`
-- `viewer@signalops.dev` / `Viewer123!`
-
-## Local Development
-
-### Backend
+### Local backend + frontend
 
 ```bash
-cd backend
-python3 -m pip install -e '.[dev]'
-uvicorn app.main:app --reload --port 8000
+cp .env.example .env
+make backend-install
+make frontend-install
 ```
 
-### Frontend
+Run the API:
 
 ```bash
-cd frontend
-npm install
-npm run dev
+make backend-dev
 ```
 
-The frontend proxies `/api/*` to `http://localhost:8000` during development.
+Run the UI in a second terminal:
 
-### Full Stack with Docker Compose
+```bash
+make frontend-dev
+```
+
+The backend seeds demo data on startup. In local development, eager execution is enabled by default so manual runs complete inline without needing Redis or Celery.
+
+### Full stack with Docker Compose
 
 ```bash
 docker compose up --build
 ```
 
-Endpoints:
+Key endpoints:
 
 - UI: `http://localhost:8080`
 - API: `http://localhost:8000`
 - OpenAPI docs: `http://localhost:8000/docs`
-- Metrics: `http://localhost:8000/metrics`
+- Health: `http://localhost:8000/api/v1/system/health`
+- Readiness: `http://localhost:8000/api/v1/system/ready`
+- Mock API target: `http://localhost:8000/api/v1/target-api/health`
+- Mock UI target: `http://localhost:8000/api/v1/target-ui/checkout`
 
-## Testing
+## Developer workflow
+
+Common commands:
+
+```bash
+make test-backend
+make test-frontend
+make test-e2e
+make test
+```
+
+What each stack expects:
+
+- Backend reads `TESTFORGE_*` settings from `.env` or the shell.
+- Frontend uses `VITE_API_BASE_URL`, defaulting to `/api/v1`.
+- Artifacts are stored under `backend/artifacts/` locally and `/app/artifacts` in containers.
+
+## Sample automation assets
+
+API examples:
+
+- `sample-tests/api/tests/test_checkout_api.py`
+- `sample-tests/api/tests/test_identity_api.py`
+
+UI examples:
+
+- `sample-tests/ui/tests/checkout-journey.spec.ts`
+- `sample-tests/ui/tests/admin-portal.spec.ts`
+
+Ad hoc execution:
+
+```bash
+TARGET_BASE_URL=http://localhost:8000/api/v1/target-api pytest sample-tests/api/tests/test_checkout_api.py -m smoke
+TARGET_UI_BASE_URL=http://localhost:8000/api/v1/target-ui npx playwright test sample-tests/ui/tests/checkout-journey.spec.ts
+```
+
+## Verification
+
+Backend:
 
 ```bash
 cd backend && pytest
+```
+
+Frontend:
+
+```bash
 cd frontend && npm run lint
 cd frontend && npm run test:run
 cd frontend && npm run build
 cd frontend && npm run test:e2e
 ```
 
-## Verification
-
-- Backend API verified with `pytest` and live health/login/dashboard/incident endpoint checks
-- Frontend verified with lint, unit tests, production build, Playwright smoke, and a real browser login flow against the live backend
-- Docker assets are included for the full stack, and GitHub Actions reproduces the backend/frontend verification pipeline in CI
-
-## Demo Scenarios
-
-- `payment-api`: authorization timeouts and ledger persistence failures
-- `identity-service`: auth burst failures and replica issues
-- `fulfillment-engine`: queue backlog and dispatch confirmation delays
-- `notification-worker`: delivery retry storms in staging
-
 ## Notes
 
-- Log persistence is implemented in PostgreSQL for the prototype, but the ingestion flow routes through a dedicated storage abstraction so a specialized log store can be swapped in later.
-- Celery beat continuously generates simulator traffic and processes alert escalations in the full Compose stack.
+- Celery beat polls active schedules every 30 seconds in the Compose stack and dispatches due runs to the worker.
+- The execution engine is intentionally deterministic so seeded data stays stable across demos, screenshots, and portfolio review.
+- Mock UI targets are styled to feel like real internal products, but they remain intentionally deterministic so Playwright and dashboard artifacts stay repeatable.

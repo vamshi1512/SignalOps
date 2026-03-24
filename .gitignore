@@ -10,5 +10,6 @@ playwright-report/
 test-results/
 coverage/
 .env
-.signalops-live.db*
+*.db
+backend/artifacts/
 *.egg-info/

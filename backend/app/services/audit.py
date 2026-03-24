@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.audit import AuditLog
@@ -20,7 +22,7 @@ class AuditService:
         resource_id: str,
         message: str,
         actor: User | None = None,
-        details: dict[str, str] | None = None,
+        details: dict[str, Any] | None = None,
     ) -> AuditLog:
         log = AuditLog(
             actor_id=actor.id if actor else None,
@@ -32,4 +34,3 @@ class AuditService:
             details=details or {},
         )
         return await self.repository.add(log)
-

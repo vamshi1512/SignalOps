@@ -1,13 +1,16 @@
 import type {
-  Alert,
-  AlertRule,
   AuditEntry,
   AuthSession,
   DashboardOverview,
-  Incident,
+  Environment,
+  FixtureSet,
   ListResponse,
-  LogEvent,
-  Service,
+  NotificationEvent,
+  Project,
+  Schedule,
+  Suite,
+  TestRun,
+  TestRunDetail,
   User,
 } from "@/types/api";
 
@@ -24,7 +27,10 @@ export class ApiError extends Error {
 
 async function request<T>(path: string, init: RequestInit = {}, token?: string): Promise<T> {
   const headers = new Headers(init.headers);
-  headers.set("Content-Type", "application/json");
+  headers.set("Accept", "application/json");
+  if (init.body && !(init.body instanceof FormData) && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
@@ -38,7 +44,7 @@ async function request<T>(path: string, init: RequestInit = {}, token?: string):
     let message = "Request failed";
     try {
       const body = await response.json();
-      message = body.error?.message ?? message;
+      message = body.error?.message ?? body.detail ?? body.message ?? message;
     } catch {
       message = response.statusText || message;
     }
@@ -50,6 +56,19 @@ async function request<T>(path: string, init: RequestInit = {}, token?: string):
   }
 
   return response.json() as Promise<T>;
+}
+
+export function getErrorMessage(error: unknown, fallback = "Unable to load data from TestForge.") {
+  if (error instanceof ApiError) {
+    return error.message;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === "string" && error.trim()) {
+    return error;
+  }
+  return fallback;
 }
 
 export const api = {
@@ -68,52 +87,35 @@ export const api = {
   overview(token: string) {
     return request<DashboardOverview>("/dashboard/overview", { method: "GET" }, token);
   },
-  incidents(token: string, params: URLSearchParams) {
-    return request<ListResponse<Incident>>(`/incidents?${params.toString()}`, { method: "GET" }, token);
+  projects(token: string) {
+    return request<ListResponse<Project>>("/projects", { method: "GET" }, token);
   },
-  incident(token: string, incidentId: string) {
-    return request<Incident>(`/incidents/${incidentId}`, { method: "GET" }, token);
+  environments(token: string) {
+    return request<ListResponse<Environment>>("/environments", { method: "GET" }, token);
   },
-  updateIncident(token: string, incidentId: string, payload: Record<string, unknown>) {
-    return request<Incident>(
-      `/incidents/${incidentId}`,
-      { method: "PATCH", body: JSON.stringify(payload) },
-      token,
-    );
+  fixtures(token: string) {
+    return request<ListResponse<FixtureSet>>("/fixtures", { method: "GET" }, token);
   },
-  addIncidentNote(token: string, incidentId: string, content: string) {
-    return request(`/incidents/${incidentId}/notes`, {
-      method: "POST",
-      body: JSON.stringify({ content }),
-    }, token);
+  suites(token: string) {
+    return request<ListResponse<Suite>>("/suites", { method: "GET" }, token);
   },
-  logs(token: string, params: URLSearchParams) {
-    return request<ListResponse<LogEvent>>(`/logs?${params.toString()}`, { method: "GET" }, token);
+  schedules(token: string) {
+    return request<ListResponse<Schedule>>("/schedules", { method: "GET" }, token);
   },
-  services(token: string) {
-    return request<ListResponse<Service>>("/services", { method: "GET" }, token);
+  updateSchedule(token: string, scheduleId: string, payload: Record<string, unknown>) {
+    return request<Schedule>(`/schedules/${scheduleId}`, { method: "PATCH", body: JSON.stringify(payload) }, token);
   },
-  createService(token: string, payload: Record<string, unknown>) {
-    return request<Service>("/services", { method: "POST", body: JSON.stringify(payload) }, token);
+  runs(token: string, params: URLSearchParams) {
+    return request<ListResponse<TestRun>>(`/runs?${params.toString()}`, { method: "GET" }, token);
   },
-  alerts(token: string, params: URLSearchParams) {
-    return request<ListResponse<Alert>>(`/alerts?${params.toString()}`, { method: "GET" }, token);
+  run(token: string, runId: string) {
+    return request<TestRunDetail>(`/runs/${runId}`, { method: "GET" }, token);
   },
-  rules(token: string) {
-    return request<ListResponse<AlertRule>>("/alerts/rules", { method: "GET" }, token);
+  launchSuiteRun(token: string, suiteId: string, payload: Record<string, unknown>) {
+    return request<TestRun>(`/suites/${suiteId}/runs`, { method: "POST", body: JSON.stringify(payload) }, token);
   },
-  createRule(token: string, payload: Record<string, unknown>) {
-    return request<AlertRule>("/alerts/rules", { method: "POST", body: JSON.stringify(payload) }, token);
-  },
-  acknowledgeAlert(token: string, alertId: string) {
-    return request<Alert>(`/alerts/${alertId}/acknowledge`, { method: "POST" }, token);
-  },
-  suppressAlert(token: string, alertId: string, minutes: number) {
-    return request<Alert>(
-      `/alerts/${alertId}/suppress`,
-      { method: "POST", body: JSON.stringify({ minutes }) },
-      token,
-    );
+  notifications(token: string) {
+    return request<ListResponse<NotificationEvent>>("/notifications", { method: "GET" }, token);
   },
   audit(token: string) {
     return request<ListResponse<AuditEntry>>("/audit", { method: "GET" }, token);

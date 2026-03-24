@@ -3,27 +3,32 @@ from __future__ import annotations
 import asyncio
 
 from app.db.session import get_session_factory
-from app.services.alerts import AlertService
-from app.services.demo import DemoService
+from app.services.execution import ExecutionService
 from app.tasks.celery_app import celery_app
 
 
-@celery_app.task(name="app.tasks.jobs.demo_tick")
-def demo_tick() -> int:
-    async def _run() -> int:
+@celery_app.task(name="app.tasks.jobs.execute_run_task")
+def execute_run_task(run_id: str) -> str:
+    async def _run() -> str:
         async with get_session_factory()() as session:
-            service = DemoService(session)
-            return await service.generate_tick()
+            service = ExecutionService(session)
+            await service.execute_run(run_id)
+            await session.commit()
+            return run_id
 
     return asyncio.run(_run())
 
 
-@celery_app.task(name="app.tasks.jobs.process_escalations")
-def process_escalations() -> int:
-    async def _run() -> int:
+@celery_app.task(name="app.tasks.jobs.schedule_due_runs_task")
+def schedule_due_runs_task() -> int:
+    async def _run() -> list[str]:
         async with get_session_factory()() as session:
-            service = AlertService(session)
-            return await service.process_escalations()
+            service = ExecutionService(session)
+            run_ids = await service.schedule_due_runs()
+            await session.commit()
+            return run_ids
 
-    return asyncio.run(_run())
-
+    run_ids = asyncio.run(_run())
+    for run_id in run_ids:
+        execute_run_task.delay(run_id)
+    return len(run_ids)

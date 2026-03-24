@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 from app.schemas.common import ORMModel
 
@@ -12,7 +13,6 @@ class AuditRead(ORMModel):
     action: str
     resource_type: str
     resource_id: str
-    details: dict[str, str]
+    details: dict[str, Any]
     created_at: datetime
     message: str
-

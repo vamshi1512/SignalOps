@@ -1,120 +1,157 @@
 from __future__ import annotations
 
-from collections import defaultdict
-from datetime import datetime, timezone
+from collections import Counter, defaultdict
+from datetime import datetime, timedelta, timezone
+from statistics import mean
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-from app.models.enums import SeverityLevel
-from app.repositories.alerts import AlertRepository
-from app.repositories.incidents import IncidentRepository
-from app.repositories.logs import LogRepository
-from app.repositories.services import ServiceRepository
-from app.schemas.dashboard import DashboardOverview, MetricCard
-from app.schemas.common import TimeSeriesPoint
-from app.schemas.services import ServiceRead
+from app.models.qa import Environment, RunSchedule, TestRun
+from app.services.catalog import CatalogService
+from app.services.serializers import serialize_run
 
 
 class DashboardService:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
-        self.alerts = AlertRepository(session)
-        self.incidents = IncidentRepository(session)
-        self.logs = LogRepository(session)
-        self.services = ServiceRepository(session)
 
-    async def overview(self) -> DashboardOverview:
-        services = await self.services.list_all()
-        service_cards: list[ServiceRead] = []
-
-        for service in services:
-            open_incidents = sum(1 for incident in service.incidents if incident.status.value != "resolved")
-            open_alerts = sum(1 for alert in service.alerts if alert.status.value in {"open", "escalated"})
-            last_day_total = await self.logs.count_total(
-                service_id=service.id,
-                start_at=datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0),
-                end_at=datetime.now(timezone.utc),
+    async def overview(self) -> dict:
+        since = datetime.now(timezone.utc) - timedelta(days=14)
+        run_result = await self.session.execute(
+            select(TestRun)
+            .where(TestRun.created_at >= since)
+            .options(
+                selectinload(TestRun.project),
+                selectinload(TestRun.suite),
+                selectinload(TestRun.environment),
+                selectinload(TestRun.fixture_set),
+                selectinload(TestRun.schedule).selectinload(RunSchedule.environment),
+                selectinload(TestRun.triggered_by),
+                selectinload(TestRun.results),
             )
-            last_day_errors = await self.logs.count_by_severity(
-                service_id=service.id,
-                severities=[SeverityLevel.ERROR, SeverityLevel.CRITICAL],
-                start_at=datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0),
-                end_at=datetime.now(timezone.utc),
-            )
-            error_rate = (last_day_errors / last_day_total * 100) if last_day_total else 0.0
-            health_score = max(20.0, round(100.0 - (error_rate * 1.5) - open_incidents * 10 - open_alerts * 4, 1))
-            service_cards.append(
-                ServiceRead.model_validate(service).model_copy(
-                    update={
-                        "health_score": health_score,
-                        "open_incidents": int(open_incidents),
-                        "open_alerts": int(open_alerts),
-                    }
-                )
-            )
-
-        mttr = await self.incidents.average_mttr_hours()
-        open_incidents = await self.incidents.open_count()
-        open_alerts = await self.alerts.open_count()
-        total_errors = 0
-        total_logs = 0
-        for service in services:
-            total_errors += await self.logs.count_by_severity(
-                service_id=service.id,
-                severities=[SeverityLevel.ERROR, SeverityLevel.CRITICAL],
-                start_at=datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0),
-                end_at=datetime.now(timezone.utc),
-            )
-            total_logs += await self.logs.count_total(
-                service_id=service.id,
-                start_at=datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0),
-                end_at=datetime.now(timezone.utc),
-            )
-        error_rate = round((total_errors / total_logs) * 100, 2) if total_logs else 0.0
-        avg_health = round(sum(service.health_score for service in service_cards) / len(service_cards), 1) if service_cards else 100.0
-
-        incident_trend = await self._incident_trend()
-        error_rate_trend = await self._error_rate_trend()
-        alert_volume = [TimeSeriesPoint(timestamp=timestamp, value=float(value)) for timestamp, value in await self.alerts.volume_by_hour()]
-
-        recent_incidents = await self.incidents.list_filtered(limit=8)
-        active_alerts = await self.alerts.list_alerts(limit=8)
-
-        return DashboardOverview(
-            metrics=[
-                MetricCard(label="Open incidents", value=float(open_incidents), delta=8.0),
-                MetricCard(label="MTTR", value=mttr, delta=-12.0, suffix="h"),
-                MetricCard(label="Error rate", value=error_rate, delta=2.6, suffix="%"),
-                MetricCard(label="Service health", value=avg_health, delta=1.8, suffix="%"),
-                MetricCard(label="Open alerts", value=float(open_alerts), delta=4.0),
-            ],
-            incident_trend=incident_trend,
-            error_rate_trend=error_rate_trend,
-            alert_volume_trend=alert_volume,
-            services=service_cards,
-            recent_incidents=[item for item in recent_incidents],
-            active_alerts=[item for item in active_alerts if item.status.value != "resolved"],
+            .order_by(TestRun.created_at.desc())
         )
+        runs = list(run_result.scalars().all())
+        environment_result = await self.session.execute(
+            select(Environment).options(selectinload(Environment.project)).order_by(Environment.name)
+        )
+        environments = list(environment_result.scalars().all())
+        suites = await CatalogService(self.session).list_suites()
 
-    async def _incident_trend(self) -> list[TimeSeriesPoint]:
-        points = [TimeSeriesPoint(timestamp=timestamp, value=float(value)) for timestamp, value in await self.logs.bucket_by_hour(service_id=None, severity=SeverityLevel.ERROR)]
-        return points
+        current_week_cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+        current_week = [run for run in runs if self._as_utc(run.created_at) >= current_week_cutoff]
+        prior_week = [run for run in runs if since <= self._as_utc(run.created_at) < current_week_cutoff]
 
-    async def _error_rate_trend(self) -> list[TimeSeriesPoint]:
-        total_points = defaultdict(float)
-        error_points = defaultdict(float)
+        def aggregate_pass_rate(target_runs: list[TestRun]) -> float:
+            total = sum(run.total_count for run in target_runs)
+            passed = sum(run.pass_count + run.skip_count for run in target_runs)
+            return round((passed / total * 100) if total else 100.0, 1)
 
-        for timestamp, count in await self.logs.bucket_by_hour(service_id=None):
-            total_points[timestamp] = float(count)
-        for timestamp, count in await self.logs.bucket_by_hour(service_id=None, severity=SeverityLevel.ERROR):
-            error_points[timestamp] += float(count)
-        for timestamp, count in await self.logs.bucket_by_hour(service_id=None, severity=SeverityLevel.CRITICAL):
-            error_points[timestamp] += float(count)
+        def avg_duration_minutes(target_runs: list[TestRun]) -> float:
+            return round((mean([run.duration_ms for run in target_runs]) / 60000) if target_runs else 0.0, 1)
 
-        series = []
-        for timestamp in sorted(total_points):
-            total = total_points[timestamp]
-            errors = error_points[timestamp]
-            rate = (errors / total * 100) if total else 0.0
-            series.append(TimeSeriesPoint(timestamp=timestamp, value=round(rate, 2)))
-        return series
+        current_pass_rate = aggregate_pass_rate(current_week)
+        prior_pass_rate = aggregate_pass_rate(prior_week)
+        current_failure_count = sum(run.fail_count for run in current_week)
+        prior_failure_count = sum(run.fail_count for run in prior_week)
+        current_flaky = sum(run.flaky_count for run in current_week)
+        prior_flaky = sum(run.flaky_count for run in prior_week)
+        current_duration = avg_duration_minutes(current_week)
+        prior_duration = avg_duration_minutes(prior_week)
+        schedule_coverage = round((sum(1 for suite in suites if suite["schedules"]) / len(suites) * 100) if suites else 0.0, 1)
+
+        metrics = [
+            {"label": "Pass rate", "value": current_pass_rate, "delta": current_pass_rate - prior_pass_rate, "suffix": "%"},
+            {"label": "Failures", "value": float(current_failure_count), "delta": float(current_failure_count - prior_failure_count), "suffix": ""},
+            {"label": "Avg duration", "value": current_duration, "delta": current_duration - prior_duration, "suffix": "m"},
+            {"label": "Flaky hits", "value": float(current_flaky), "delta": float(current_flaky - prior_flaky), "suffix": ""},
+            {"label": "Schedule coverage", "value": schedule_coverage, "delta": 0.0, "suffix": "%"},
+        ]
+
+        grouped_runs: dict[str, list[TestRun]] = defaultdict(list)
+        for run in runs:
+            day_bucket = self._as_utc(run.created_at).date().isoformat()
+            grouped_runs[day_bucket].append(run)
+
+        pass_rate_trend = []
+        duration_trend = []
+        flaky_trend = []
+        for day in sorted(grouped_runs):
+            day_runs = grouped_runs[day]
+            timestamp = datetime.fromisoformat(f"{day}T00:00:00+00:00")
+            pass_rate_trend.append({"timestamp": timestamp, "value": aggregate_pass_rate(day_runs)})
+            duration_trend.append({"timestamp": timestamp, "value": avg_duration_minutes(day_runs)})
+            flaky_trend.append({"timestamp": timestamp, "value": float(sum(run.flaky_count for run in day_runs))})
+
+        failure_counter = Counter(
+            result.module_name
+            for run in runs
+            for result in run.results
+            if result.status.value == "failed"
+        )
+        failures_by_module = [
+            {"module_name": module_name, "failures": failures}
+            for module_name, failures in failure_counter.most_common(6)
+        ]
+
+        recent_runs = [serialize_run(run) for run in runs[:8]]
+        latest_run_by_suite: dict[str, TestRun] = {}
+        for run in runs:
+            latest_run_by_suite.setdefault(run.suite_id, run)
+
+        risk_candidates = [
+            suite
+            for suite in suites
+            if suite["pass_rate_14d"] < 100
+            or suite["flaky_cases"] > 0
+            or (
+                latest_run_by_suite.get(suite["id"]) is not None
+                and latest_run_by_suite[suite["id"]].fail_count > 0
+            )
+        ]
+        if not risk_candidates:
+            risk_candidates = suites
+        suites_at_risk = [
+            {
+                "id": suite["id"],
+                "name": suite["name"],
+                "suite_type": suite["suite_type"],
+                "owner": suite["owner"],
+                "latest_status": suite["latest_run_status"],
+                "pass_rate_14d": suite["pass_rate_14d"],
+                "flaky_cases": suite["flaky_cases"],
+                "failing_results": latest_run_by_suite.get(suite["id"]).fail_count if latest_run_by_suite.get(suite["id"]) else 0,
+                "environment_name": suite["default_environment"]["name"] if suite["default_environment"] else None,
+            }
+            for suite in sorted(risk_candidates, key=lambda item: (item["pass_rate_14d"], -item["flaky_cases"]))[:6]
+        ]
+
+        environment_badges = [
+            {
+                "id": environment.id,
+                "name": environment.name,
+                "kind": environment.kind,
+                "status": environment.status,
+                "project_name": environment.project.name,
+                "last_checked_at": environment.last_checked_at,
+            }
+            for environment in environments
+        ]
+
+        return {
+            "metrics": metrics,
+            "pass_rate_trend": pass_rate_trend,
+            "duration_trend": duration_trend,
+            "flaky_trend": flaky_trend,
+            "failures_by_module": failures_by_module,
+            "recent_runs": recent_runs,
+            "suites_at_risk": suites_at_risk,
+            "environments": environment_badges,
+        }
+
+    def _as_utc(self, value: datetime) -> datetime:
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc)

@@ -14,15 +14,15 @@ export function DialogContent({
 }: DialogPrimitive.DialogContentProps) {
   return (
     <DialogPrimitive.Portal>
-      <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-slate-950/80 backdrop-blur-sm" />
+      <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-slate-950/70 backdrop-blur-sm" />
       <DialogPrimitive.Content
         className={cn(
-          "fixed inset-y-4 right-4 z-50 flex w-[min(720px,calc(100vw-2rem))] flex-col rounded-[28px] border border-white/10 bg-slate-950/95 shadow-panel outline-none",
+          "fixed inset-y-4 right-4 z-50 flex w-[min(760px,calc(100vw-2rem))] flex-col rounded-[28px] border border-border bg-card/95 shadow-panel outline-none",
           className,
         )}
         {...props}
       >
-        <DialogPrimitive.Close className="absolute right-5 top-5 rounded-full border border-white/10 p-2 text-muted-foreground transition hover:bg-white/10 hover:text-foreground">
+        <DialogPrimitive.Close className="absolute right-5 top-5 rounded-full border border-border p-2 text-muted-foreground transition hover:bg-secondary hover:text-foreground">
           <X className="h-4 w-4" />
         </DialogPrimitive.Close>
         {children}
@@ -32,7 +32,7 @@ export function DialogContent({
 }
 
 export function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("border-b border-white/10 px-6 py-5", className)} {...props} />;
+  return <div className={cn("border-b border-border/80 px-6 py-5", className)} {...props} />;
 }
 
 export function DialogTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
@@ -42,4 +42,3 @@ export function DialogTitle({ className, ...props }: React.HTMLAttributes<HTMLHe
 export function DialogDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
   return <p className={cn("mt-2 text-sm text-muted-foreground", className)} {...props} />;
 }
-

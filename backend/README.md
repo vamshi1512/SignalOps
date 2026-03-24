@@ -1,3 +1,3 @@
-# SignalOps Backend
+# TestForge Backend
 
-FastAPI backend for the SignalOps operations platform.
+FastAPI backend for the TestForge QA automation management platform.

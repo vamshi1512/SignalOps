@@ -47,4 +47,3 @@ jobs:
       - name: Run Playwright smoke
         run: npm run test:e2e
         working-directory: frontend
-

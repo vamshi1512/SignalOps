@@ -5,48 +5,63 @@ from enum import Enum
 
 class UserRole(str, Enum):
     ADMIN = "admin"
-    SRE = "sre"
+    QA_ENGINEER = "qa_engineer"
     VIEWER = "viewer"
 
 
-class ServiceEnvironment(str, Enum):
-    PRODUCTION = "production"
+class EnvironmentKind(str, Enum):
+    QA = "qa"
     STAGING = "staging"
-    DEVELOPMENT = "development"
+    PROD_LIKE = "prod_like"
+    MOCK = "mock"
 
 
-class ServicePriority(str, Enum):
-    P0 = "p0"
-    P1 = "p1"
-    P2 = "p2"
-    P3 = "p3"
+class EnvironmentStatus(str, Enum):
+    HEALTHY = "healthy"
+    DEGRADED = "degraded"
+    OFFLINE = "offline"
 
 
-class SeverityLevel(str, Enum):
-    INFO = "info"
-    WARNING = "warning"
-    ERROR = "error"
-    CRITICAL = "critical"
+class SuiteType(str, Enum):
+    API = "api"
+    UI = "ui"
 
 
-class IncidentStatus(str, Enum):
-    OPEN = "open"
-    ACKNOWLEDGED = "acknowledged"
-    INVESTIGATING = "investigating"
-    RESOLVED = "resolved"
+class SuiteStatus(str, Enum):
+    ACTIVE = "active"
+    DRAFT = "draft"
+    PAUSED = "paused"
 
 
-class AlertMetric(str, Enum):
-    ERROR_RATE = "error_rate"
-    CRITICAL_LOGS = "critical_logs"
-    ANOMALY_SCORE = "anomaly_score"
-    INCIDENT_COUNT = "incident_count"
+class RunStatus(str, Enum):
+    QUEUED = "queued"
+    RUNNING = "running"
+    PASSED = "passed"
+    FAILED = "failed"
+    PARTIAL = "partial"
+    CANCELLED = "cancelled"
 
 
-class AlertStatus(str, Enum):
-    OPEN = "open"
-    ACKNOWLEDGED = "acknowledged"
-    SUPPRESSED = "suppressed"
-    ESCALATED = "escalated"
-    RESOLVED = "resolved"
+class ResultStatus(str, Enum):
+    PASSED = "passed"
+    FAILED = "failed"
+    SKIPPED = "skipped"
+    FLAKY = "flaky"
 
+
+class TriggerType(str, Enum):
+    MANUAL = "manual"
+    SCHEDULED = "scheduled"
+    DEMO = "demo"
+
+
+class NotificationChannel(str, Enum):
+    SLACK = "slack"
+    EMAIL = "email"
+    WEBHOOK = "webhook"
+
+
+class NotificationStatus(str, Enum):
+    PENDING = "pending"
+    SENT = "sent"
+    SKIPPED = "skipped"

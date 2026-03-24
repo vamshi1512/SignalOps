@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import JSON, DateTime, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
@@ -17,6 +18,6 @@ class AuditLog(UUIDPrimaryKeyMixin, Base):
     action: Mapped[str] = mapped_column(String(120), index=True)
     resource_type: Mapped[str] = mapped_column(String(120), index=True)
     resource_id: Mapped[str] = mapped_column(String(120), index=True)
-    details: Mapped[dict[str, str]] = mapped_column(JSON, default=dict)
+    details: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
     message: Mapped[str] = mapped_column(Text, default="")

@@ -3,9 +3,9 @@ requires = ["setuptools>=70", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "signalops-backend"
+name = "testforge-backend"
 version = "0.1.0"
-description = "SignalOps backend platform"
+description = "TestForge backend platform"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -38,6 +38,10 @@ dev = [
 asyncio_mode = "auto"
 testpaths = ["tests"]
 pythonpath = ["."]
+markers = [
+  "smoke: sample smoke suites against the mock target API",
+  "contract: sample contract suites against seeded demo targets",
+]
 
 [tool.setuptools.packages.find]
 where = ["."]

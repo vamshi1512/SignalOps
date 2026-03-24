@@ -17,10 +17,4 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     role: Mapped[UserRole] = mapped_column(Enum(UserRole), index=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
-    assigned_incidents = relationship(
-        "Incident",
-        back_populates="assignee",
-        foreign_keys="Incident.assignee_id",
-    )
-    notes = relationship("IncidentNote", back_populates="author")
-
+    triggered_runs = relationship("TestRun", back_populates="triggered_by")

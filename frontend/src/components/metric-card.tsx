@@ -10,17 +10,17 @@ export function MetricCard({ metric }: { metric: MetricCardType }) {
   const TrendIcon = positive ? ArrowUpRight : ArrowDownRight;
 
   return (
-    <Card className="metric-glow border-white/10">
+    <Card className="metric-glow border-border/60">
       <CardContent className="space-y-4 p-5">
         <div className="flex items-center justify-between">
-          <Badge>{metric.label}</Badge>
-          <span className="rounded-full border border-white/10 bg-white/5 p-2">
-            <TrendIcon className={`h-4 w-4 ${positive ? "text-emerald-300" : "text-red-300"}`} />
+          <Badge className="bg-background/45">{metric.label}</Badge>
+          <span className="rounded-full border border-border/70 bg-background/55 p-2 shadow-inner">
+            <TrendIcon className={`h-4 w-4 ${positive ? "text-emerald-400" : "text-red-400"}`} />
           </span>
         </div>
         <div className="space-y-1">
-          <div className="font-display text-3xl text-white">{formatMetric(metric.value, metric.suffix)}</div>
-          <div className={`text-sm ${positive ? "text-emerald-300" : "text-red-300"}`}>
+          <div className="font-display text-3xl text-foreground">{formatMetric(metric.value, metric.suffix)}</div>
+          <div className={`text-sm ${positive ? "text-emerald-400" : "text-red-400"}`}>
             {formatDelta(metric.delta, metric.suffix)} vs baseline
           </div>
         </div>
@@ -28,4 +28,3 @@ export function MetricCard({ metric }: { metric: MetricCardType }) {
     </Card>
   );
 }
-

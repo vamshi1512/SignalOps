@@ -11,7 +11,7 @@ import {
 import { api, ApiError } from "@/lib/api";
 import type { AuthSession } from "@/types/api";
 
-const STORAGE_KEY = "signalops-session";
+const STORAGE_KEY = "testforge-session";
 
 interface AuthContextValue {
   session: AuthSession | null;
@@ -81,7 +81,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSession));
     } catch (error) {
       const message =
-        error instanceof ApiError ? error.message : "Unable to reach SignalOps API. Check backend availability.";
+        error instanceof ApiError ? error.message : "Unable to reach the TestForge API. Check backend availability.";
       setError(message);
       throw error;
     }

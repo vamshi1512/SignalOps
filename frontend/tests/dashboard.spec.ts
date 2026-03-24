@@ -1,36 +1,20 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 const authSession = {
   access_token: "demo-token",
   token_type: "bearer",
   user: {
     id: "user-1",
-    email: "sre@signalops.dev",
-    full_name: "SRE Commander",
-    role: "sre",
+    email: "qa.lead@testforge.dev",
+    full_name: "QA Lead",
+    role: "qa_engineer",
   },
 };
 
-const service = {
-  id: "svc-1",
-  name: "Payment API",
-  slug: "payment-api",
-  owner: "Team Atlas",
-  environment: "production",
-  priority: "p0",
-  sla_target: 99.95,
-  description: "Payments",
-  created_at: "2026-03-18T10:00:00Z",
-  updated_at: "2026-03-18T10:00:00Z",
-  health_score: 92,
-  open_incidents: 2,
-  open_alerts: 1,
-};
-
-test("renders dashboard with mocked API", async ({ page }) => {
+test("renders TestForge dashboard with mocked API", async ({ page }) => {
   await page.addInitScript(([key, value]) => {
     window.localStorage.setItem(key, JSON.stringify(value));
-  }, ["signalops-session", authSession]);
+  }, ["testforge-session", authSession]);
 
   await page.route("**/api/v1/auth/me", async (route) => {
     await route.fulfill({ json: authSession.user });
@@ -40,65 +24,95 @@ test("renders dashboard with mocked API", async ({ page }) => {
     await route.fulfill({
       json: {
         metrics: [
-          { label: "Open incidents", value: 3, delta: 2, suffix: "" },
-          { label: "MTTR", value: 1.8, delta: -0.3, suffix: "h" },
-          { label: "Error rate", value: 4.4, delta: 1.1, suffix: "%" },
-          { label: "Service health", value: 91, delta: 0.5, suffix: "%" },
-          { label: "Open alerts", value: 2, delta: 0.2, suffix: "" },
+          { label: "Pass rate", value: 96.4, delta: 1.7, suffix: "%" },
+          { label: "Failures", value: 4, delta: -2, suffix: "" },
+          { label: "Avg duration", value: 3.8, delta: 0.2, suffix: "m" },
+          { label: "Flaky hits", value: 3, delta: 1, suffix: "" },
+          { label: "Schedule coverage", value: 100, delta: 0, suffix: "%" },
         ],
-        incident_trend: [{ timestamp: "2026-03-18T09:00:00Z", value: 2 }],
-        error_rate_trend: [{ timestamp: "2026-03-18T09:00:00Z", value: 4.4 }],
-        alert_volume_trend: [{ timestamp: "2026-03-18T09:00:00Z", value: 1 }],
-        services: [service],
-        recent_incidents: [
+        pass_rate_trend: [{ timestamp: "2026-03-18T09:00:00Z", value: 96.4 }],
+        duration_trend: [{ timestamp: "2026-03-18T09:00:00Z", value: 3.8 }],
+        flaky_trend: [{ timestamp: "2026-03-18T09:00:00Z", value: 3 }],
+        failures_by_module: [{ module_name: "payment.authorize", failures: 4 }],
+        recent_runs: [
           {
-            id: "inc-1",
-            title: "Payment API timeout burst",
-            summary: "Grouped failures",
-            root_cause_hint: "Database",
-            status: "open",
-            severity: "critical",
-            environment: "production",
-            group_key: "g1",
-            first_seen_at: "2026-03-18T08:45:00Z",
-            last_seen_at: "2026-03-18T09:00:00Z",
-            resolved_at: null,
-            occurrence_count: 10,
-            affected_logs: 10,
-            current_error_rate: 14,
-            health_impact: 58,
-            service,
-            assignee: null,
-            notes: [],
+            id: "run-1",
+            trigger_type: "scheduled",
+            status: "failed",
+            requested_parallel_workers: 2,
+            total_count: 4,
+            pass_count: 3,
+            fail_count: 1,
+            skip_count: 0,
+            flaky_count: 1,
+            duration_ms: 72000,
+            started_at: "2026-03-18T09:00:00Z",
+            finished_at: "2026-03-18T09:01:12Z",
+            created_at: "2026-03-18T08:58:00Z",
+            summary: { source_command: "npx playwright test sample-tests/ui/tests/checkout-journey.spec.ts" },
+            metadata: { environment_kind: "staging" },
+            project: {
+              id: "project-1",
+              name: "Checkout Core",
+              slug: "checkout-core",
+              owner: "Team Helix",
+              repository_url: "https://github.com/example/checkout-core",
+              default_branch: "main",
+              description: "Checkout automation",
+              created_at: "2026-03-18T08:00:00Z",
+              updated_at: "2026-03-18T08:00:00Z",
+            },
+            suite: {
+              id: "suite-1",
+              name: "Checkout UI Journeys",
+              slug: "checkout-ui-journeys",
+              suite_type: "ui",
+              owner: "Team Helix",
+              tags: ["ui", "checkout"],
+              status: "active",
+            },
+            environment: {
+              id: "env-1",
+              project_id: "project-1",
+              name: "Checkout Staging",
+              slug: "checkout-staging",
+              kind: "staging",
+              status: "degraded",
+              api_base_url: "http://backend:8000/api/v1",
+              ui_base_url: "http://backend:8000/api/v1",
+              health_summary: "1 failing result in latest run",
+              variables: { browser: "chromium" },
+              is_default: false,
+              last_checked_at: "2026-03-18T09:01:12Z",
+              created_at: "2026-03-18T08:00:00Z",
+              updated_at: "2026-03-18T08:00:00Z",
+            },
+            fixture_set: null,
+            schedule: null,
+            triggered_by: null,
           },
         ],
-        active_alerts: [
+        suites_at_risk: [
           {
-            id: "alert-1",
-            status: "open",
-            message: "Payment error rate spike",
-            current_value: 14,
-            threshold: 8,
-            triggered_at: "2026-03-18T09:00:00Z",
-            acknowledged_at: null,
-            resolved_at: null,
-            suppressed_until: null,
-            escalation_level: 0,
-            service,
-            rule: {
-              id: "rule-1",
-              name: "Payment error rate spike",
-              description: "demo",
-              metric: "error_rate",
-              threshold: 8,
-              window_minutes: 15,
-              severity: "critical",
-              enabled: true,
-              suppression_minutes: 20,
-              escalate_after_minutes: 20,
-              service,
-            },
-            incident: null,
+            id: "suite-1",
+            name: "Checkout UI Journeys",
+            suite_type: "ui",
+            owner: "Team Helix",
+            latest_status: "failed",
+            pass_rate_14d: 96.4,
+            flaky_cases: 1,
+            failing_results: 1,
+            environment_name: "Checkout Staging",
+          },
+        ],
+        environments: [
+          {
+            id: "env-1",
+            name: "Checkout Staging",
+            kind: "staging",
+            status: "degraded",
+            project_name: "Checkout Core",
+            last_checked_at: "2026-03-18T09:01:12Z",
           },
         ],
       },
@@ -106,7 +120,6 @@ test("renders dashboard with mocked API", async ({ page }) => {
   });
 
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /reliability posture/i })).toBeVisible();
-  await expect(page.getByText("Reliability trendline")).toBeVisible();
-  await expect(page.locator("text=Payment API").first()).toBeVisible();
+  await expect(page.getByText("Pass-rate trend")).toBeVisible();
+  await expect(page.getByText("Checkout UI Journeys").first()).toBeVisible();
 });

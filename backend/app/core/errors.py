@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from fastapi.encoders import jsonable_encoder
 from fastapi import HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -49,15 +50,15 @@ async def http_error_handler(request: Request, exc: HTTPException) -> JSONRespon
 
 
 async def validation_error_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+    details = jsonable_encoder(exc.errors(), custom_encoder={ValueError: lambda value: str(value)})
     return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         content={
             "error": {
                 "code": "validation_error",
                 "message": "Request validation failed",
-                "details": exc.errors(),
+                "details": details,
             },
             "request_id": _request_id(request),
         },
     )
-
